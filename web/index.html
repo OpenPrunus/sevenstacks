@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0b3d2c">
+  <meta name="description" content="Sevenstacks : le solitaire classique (Klondike), tirer 1 ou 3 cartes, donnes gagnables, indices, annulation. Dans le navigateur, sans compte, hors ligne.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <script src="pwa.js" defer></script>
+  <title>Sevenstacks</title>
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <section id="title" class="screen">
+      <div class="logo" aria-hidden="true"><span class="mini red">A<i>♥&#xFE0E;</i></span><span class="mini">K<i>♠&#xFE0E;</i></span><span class="mini red">7<i>♦&#xFE0E;</i></span></div>
+      <h1 data-i18n="title"></h1>
+      <p class="tagline" data-i18n="tagline"></p>
+      <div class="stack">
+        <button class="btn primary" data-action="resume" id="btn-resume" data-i18n="resume" hidden></button>
+        <button class="btn" data-action="play" id="btn-play" data-i18n="play"></button>
+        <div class="seg" id="seg-draw" role="group"><button data-draw="1" data-i18n="draw1"></button><button data-draw="3" data-i18n="draw3"></button></div>
+        <div class="seg" id="seg-mode" role="group"><button data-mode="winnable" data-i18n="winnable"></button><button data-mode="random" data-i18n="random"></button></div>
+        <p class="best" id="stats-line"></p>
+        <p class="best" id="best-line"></p>
+        <button class="btn" data-action="help" data-i18n="howTo"></button>
+      </div>
+      <div class="links">
+        <button class="link" data-action="toggleSound" id="opt-sound"></button>
+        <button class="link" data-action="toggleLang" id="opt-lang" data-i18n="langToggle"></button>
+      </div>
+      <footer class="foot">
+        <a class="all" href="https://games.prunus.dev" data-i18n="allGames"></a>
+        <a class="gh" href="https://github.com/OpenPrunus/sevenstacks" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.930 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.040.138 3 .405 2.280-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg><span data-i18n="github"></span></a>
+        <span class="license" title="MIT License">MIT</span>
+      </footer>
+      <p class="offline" id="offline" data-i18n="offline" hidden></p>
+    </section>
+
+    <section id="help" class="screen" hidden>
+      <h2 data-i18n="howTo"></h2>
+      <p class="left" data-i18n="help1"></p>
+      <p class="left" data-i18n="help2"></p>
+      <p class="left" data-i18n="help3"></p>
+      <button class="btn small" data-action="title" data-i18n="ok"></button>
+    </section>
+
+    <section id="game" class="screen" hidden>
+      <header id="bar">
+        <span class="stat"><span data-i18n="score"></span> <b id="st-score">0</b></span>
+        <span class="stat"><span data-i18n="movesLabel"></span> <b id="st-moves">0</b></span>
+        <span class="stat"><span data-i18n="timeLabel"></span> <b id="st-time">0:00</b></span>
+        <span class="stat deal" id="st-deal"></span>
+      </header>
+      <div id="board" role="application" aria-label="Sevenstacks"></div>
+      <nav id="controls">
+        <button class="ctl" data-action="undo" id="btn-undo" data-i18n-aria="undo" data-i18n-title="undo"><span class="ico">&#8630;</span><span class="lbl" data-i18n="undo"></span></button>
+        <button class="ctl" data-action="hint" id="btn-hint" data-i18n-aria="hint" data-i18n-title="hint"><span class="ico">?</span><span class="lbl" data-i18n="hint"></span></button>
+        <button class="ctl accent" data-action="finish" id="btn-finish" data-i18n-aria="finish" data-i18n-title="finish" hidden><span class="ico">&#10003;</span><span class="lbl" data-i18n="finish"></span></button>
+        <button class="ctl" data-action="new" id="btn-new" data-i18n-aria="newDeal" data-i18n-title="newDeal"><span class="ico">+</span><span class="lbl" data-i18n="newDeal"></span></button>
+        <button class="ctl" data-action="toggleSound" id="btn-sound" data-i18n-aria="soundOn"><span class="ico">&#9835;</span><span class="lbl" id="lbl-sound"></span></button>
+        <button class="ctl" data-action="title" id="btn-menu" data-i18n-aria="menu" data-i18n-title="menu"><span class="ico">&#9776;</span><span class="lbl" data-i18n="menu"></span></button>
+      </nav>
+      <div id="toast" role="status" hidden></div>
+      <div id="result" class="overlay" hidden>
+        <div class="panel">
+          <h2 data-i18n="won"></h2>
+          <p id="res-detail"></p>
+          <p id="res-record" class="record"></p>
+          <p id="res-stats" class="best"></p>
+          <div class="stack">
+            <button class="btn primary" data-action="again" data-i18n="again"></button>
+            <button class="btn" data-action="replay" data-i18n="replay"></button>
+            <button class="btn" data-action="title" data-i18n="menu"></button>
+          </div>
+        </div>
+      </div>
+      <div id="confirm" class="overlay" hidden>
+        <div class="panel">
+          <p data-i18n="confirmNew"></p>
+          <div class="stack">
+            <button class="btn primary" data-action="confirmYes" data-i18n="yes"></button>
+            <button class="btn" data-action="confirmNo" data-i18n="no"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

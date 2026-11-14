@@ -1,0 +1,6 @@
+services:
+  sevenstacks:
+    build: .
+    ports:
+      - "8106:80"
+    restart: unless-stopped

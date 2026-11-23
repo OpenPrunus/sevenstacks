@@ -1,0 +1,80 @@
+name: CI
+
+# CI sur le Gitea interne (git.prunus.dev, runner LXC 111). GitHub n'est qu'une sauvegarde : pas de CI là-bas.
+on:
+  push:
+    branches: [main]
+    # Jamais sur une étiquette (Gitea lancerait sinon la CI de chaque étiquette poussée)
+    tags-ignore: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Le groupe est partagé entre dépôts sur Gitea : le nom du dépôt y figure
+  group: ci-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Engine (rules, solver, hints), translations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm run lint
+      - name: Tests unitaires et couverture
+        run: npm run test:coverage 2>&1 | tee coverage.txt
+      - name: Résumé de la couverture
+        if: always()
+        run: |
+          { echo '### Couverture du code'; echo '```'; cat coverage.txt 2>/dev/null; echo '```'; } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
+  browser:
+    name: Browser (desktop and emulated phone, offline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Installer Google Chrome (absent de l'image du runner)
+        run: |
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ./google-chrome-stable_current_amd64.deb
+      - name: Drive headless Chrome
+        run: npm run test:browser
+
+  docker:
+    name: Docker image (smoke test)
+    runs-on: ubuntu-latest
+    env:
+      # Le démon Docker est celui de l'hôte, partagé entre les tâches : noms uniques par exécution, et le conteneur testé
+      # partage le réseau de la tâche (--network container:...), donc pas de port publié et rien qui entre en collision.
+      IMAGE: sevenstacks:ci-${{ github.run_id }}
+      NAME: sevenstacks-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -t "$IMAGE" .
+      - name: Serve and check the page, its assets and the security headers
+        run: |
+          set -eu
+          docker run -d --name "$NAME" --network "container:$(hostname)" "$IMAGE"
+          for i in $(seq 1 20); do curl -fs http://localhost/ >/dev/null && break; sleep 1; done
+          code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
+          test "$(code http://localhost/)" = 200
+          for f in css/style.css js/main.js js/engine.js js/audio.js js/i18n.js manifest.webmanifest sw.js pwa.js icons/icon-192.png icons/icon-512.png icons/icon.svg; do test "$(code http://localhost/$f)" = 200; done
+          for f in Dockerfile nginx.conf docker-compose.yml tests/engine.test.js .git/config; do test "$(code http://localhost/$f)" = 404; done
+          curl -sI http://localhost/manifest.webmanifest | grep -qi "application/manifest+json"
+          curl -sI http://localhost/ | grep -qi "content-security-policy"
+          curl -sI http://localhost/ | grep -qi "x-content-type-options: nosniff"
+      - name: Container logs
+        if: failure()
+        run: docker logs "$NAME"
+      - name: Nettoyage
+        if: always()
+        run: docker rm -f "$NAME" >/dev/null 2>&1 || true; docker rmi -f "$IMAGE" >/dev/null 2>&1 || true
